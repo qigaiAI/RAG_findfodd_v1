@@ -155,42 +155,47 @@ class RecipeRAGSystem:
             # 详细查询和一般查询使用智能重写
             print("🤖 智能分析查询...")
             rewritten_query = self.generation_module.query_rewrite(question)
-        
-        # 3. 检索相关子块（自动应用元数据过滤）
-        print("🔍 检索相关文档...")
-        '''
-        filters = self._extract_filters_from_query(question)
-        if filters:
-            print(f"应用过滤条件: {filters}")
-            #元数据过滤，
-            relevant_chunks = self.retrieval_module.metadata_filtered_search(rewritten_query, filters, top_k=self.config.top_k)
-        else:
-            relevant_chunks = self.retrieval_module.hybrid_search(rewritten_query, top_k=self.config.top_k)
-        '''#这个是一个示例，展示了如何从用户查询中提取元数据过滤条件（如分类和难度），并将这些条件应用于检索过程，以提高检索结果的相关性和准确性。您可以根据需要调整过滤条件的提取逻辑和应用方式。
-        relevant_chunks = self.retrieval_module.hybrid_search(rewritten_query, top_k=self.config.top_k)
 
-        # 显示检索到的子块信息
-        if relevant_chunks:
-            chunk_info = [] #这句话是为了在输出中显示每个相关文档块的菜品名称和章节标题（如果有的话），以便更清晰地了解检索结果的内容和来源
-            for chunk in relevant_chunks:
-                dish_name = chunk.metadata.get('dish_name', '未知菜品')
-                # 尝试从内容中提取章节标题
-                content_preview = chunk.page_content[:100].strip()
-                if content_preview.startswith('#'):
-                    # 如果是标题开头，提取标题（仅取第一行）
-                    title_end = content_preview.find('\n') if '\n' in content_preview else len(content_preview)
-                    section_title = content_preview[:title_end].replace('#', '').strip()
-                    chunk_info.append(f"{dish_name}({section_title})")
-                else:
-                    chunk_info.append(f"{dish_name}(内容片段)")
+            # 3. 检索相关子块（自动应用元数据过滤）
 
-            print(f"找到 {len(relevant_chunks)} 个相关文档块: {', '.join(chunk_info)}")
-        else:
-            print(f"找到 {len(relevant_chunks)} 个相关文档块")
+            print("🔍 检索相关文档...")
+            filters = self._extract_filters_from_query(rewritten_query)
+            if filters:
+                print(f"应用过滤条件: {filters}")
+                # 元数据过滤，
+                filters_chunks = self.retrieval_module.metadata_filtered_search(rewritten_query, filters,
+                                                                                 top_k=self.config.top_k*3)
+                relevant_chunks = self.retrieval_module.hybrid_search_from_filters(rewritten_query,filters_chunks, top_k=self.config.top_k)
+            else:
+                relevant_chunks = self.retrieval_module.hybrid_search(rewritten_query, top_k=self.config.top_k)
+            # 这个是一个示例，展示了如何从用户查询中提取元数据过滤条件（如分类和难度），并将这些条件应用于检索过程，以提高检索结果的相关性和准确性。您可以根据需要调整过滤条件的提取逻辑和应用方式。
 
-        # 4. 检查是否找到相关内容
-        if not relevant_chunks:
-            return "抱歉，没有找到相关的食谱信息。请尝试其他菜品名称或关键词。"
+            # relevant_chunks = self.retrieval_module.hybrid_search(rewritten_query, top_k=self.config.top_k)
+
+            # 显示检索到的子块信息
+            if relevant_chunks:
+                chunk_info = []  # 这句话是为了在输出中显示每个相关文档块的菜品名称和章节标题（如果有的话），以便更清晰地了解检索结果的内容和来源
+                for chunk in relevant_chunks:
+                    dish_name = chunk.metadata.get('dish_name', '未知菜品')
+                    # 尝试从内容中提取章节标题
+                    content_preview = chunk.page_content[:100].strip()
+                    if content_preview.startswith('#'):
+                        # 如果是标题开头，提取标题（仅取第一行）
+                        title_end = content_preview.find('\n') if '\n' in content_preview else len(content_preview)
+                        section_title = content_preview[:title_end].replace('#', '').strip()
+                        chunk_info.append(f"{dish_name}({section_title})")
+                    else:
+                        chunk_info.append(f"{dish_name}(内容片段)")
+
+                print(f"找到 {len(relevant_chunks)} 个相关文档块: {', '.join(chunk_info)}")
+            else:
+                print(f"找到 {len(relevant_chunks)} 个相关文档块")
+
+            # 4. 检查是否找到相关内容
+            if not relevant_chunks:
+                return "抱歉，没有找到相关的食谱信息。请尝试其他菜品名称或关键词。"
+
+
 
         # 5. 根据路由类型选择回答方式
         if route_type == 'list':
@@ -246,7 +251,7 @@ class RecipeRAGSystem:
     
     def _extract_filters_from_query(self, query: str) -> dict:
         """
-        从用户问题中提取元数据过滤条件
+        从重写的用户问题中提取元数据过滤条件
         """
         #提取关键词太有限，可以考虑使用更复杂的NLP方法来识别用户意图中的分类和难度信息
         filters = {}
@@ -295,8 +300,10 @@ class RecipeRAGSystem:
                 dish_names.append(dish_name)
         
         return dish_names
-    '''  #这个方法是一个示例，展示了如何通过分类进行搜索。它使用了元数据过滤功能来限制搜索结果仅包含指定分类的菜品，并返回这些菜品的名称列表。您可以根据需要调整搜索条件和返回的信息。
+        '''
+      #这个方法是一个示例，展示了如何通过分类进行搜索。它使用了元数据过滤功能来限制搜索结果仅包含指定分类的菜品，并返回这些菜品的名称列表。您可以根据需要调整搜索条件和返回的信息。
 
+    '''
     def get_ingredients_list(self, dish_name: str) -> str:
         """
         获取指定菜品的食材信息
@@ -317,7 +324,7 @@ class RecipeRAGSystem:
         answer = self.generation_module.generate_basic_answer(f"{dish_name}需要什么食材？", docs)
 
         return answer
-    
+    '''
     def run_interactive(self):
         """运行交互式问答"""
         print("=" * 60)

@@ -27,6 +27,7 @@ class RetrievalOptimizationModule:
         self.chunks = chunks
         self.setup_retrievers()
 
+
     def setup_retrievers(self):
         """设置向量检索器和BM25检索器"""
         logger.info("正在设置检索器...")
@@ -34,7 +35,7 @@ class RetrievalOptimizationModule:
         # 向量检索器
         self.vector_retriever = self.vectorstore.as_retriever(
             search_type="similarity",
-            search_kwargs={"k": 5}#设置返回的相似文档数量
+            search_kwargs={"k": 8}#设置返回的相似文档数量
         )
         # 打印检索器的类路径（验证归属）
         print(type(self.vector_retriever))
@@ -43,14 +44,14 @@ class RetrievalOptimizationModule:
         # BM25检索器
         self.bm25_retriever = BM25Retriever.from_documents(
             self.chunks,
-            k=5
+            k=8
         )
 
 
 
         logger.info("检索器设置完成")
     
-    def hybrid_search(self, query: str, top_k: int = 3) -> List[Document]:
+    def hybrid_search(self, query: str, top_k: int = 8) -> List[Document]:
         """
         混合检索 - 结合向量检索和BM25检索，使用RRF重排
 
@@ -68,7 +69,29 @@ class RetrievalOptimizationModule:
         # 使用RRF重排
         reranked_docs = self._rrf_rerank(vector_docs, bm25_docs)
         return reranked_docs[:top_k]
-    
+
+
+    def hybrid_search_from_filters(self, query: str,filters_chunks, top_k: int = 8) -> List[Document]:
+        """
+        混合检索 - 结合向量检索和BM25检索，使用RRF重排
+
+        Args:
+            query: 查询文本
+            top_k: 返回结果数量
+
+        Returns:
+            检索到的文档列表
+        """
+        # 分别获取向量检索和BM25检索结果
+        vectorstore_filters = self.index_module.load_index()
+        vector_docs = self.vector_retriever.invoke(query)
+        bm25_docs = self.bm25_retriever.invoke(query)
+
+        # 使用RRF重排
+        reranked_docs = self._rrf_rerank(vector_docs, bm25_docs)
+        return reranked_docs[:top_k]
+
+
     def metadata_filtered_search(self, query: str, filters: Dict[str, Any], top_k: int = 5) -> List[Document]:
         """
         带元数据过滤的检索
@@ -82,15 +105,15 @@ class RetrievalOptimizationModule:
             过滤后的文档列表
         """
         # 先进行混合检索，获取更多候选
-        docs = self.hybrid_search(query, top_k * 3)
-        
+        #docs = self.hybrid_search(query, top_k * 3)
+
         # 应用元数据过滤
         filtered_docs = []
-        for doc in docs:
+        for doc in self.chunks:
             match = True
             for key, value in filters.items():
                 if key in doc.metadata:
-                    if isinstance(value, list):
+                    if isinstance(value, list):  #如果过滤条件是列表，检查文档元数据是否在列表中
                         if doc.metadata[key] not in value:
                             match = False
                             break
