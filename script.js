@@ -1,7 +1,7 @@
 // 前端脚本
 
 // API基础URL
-const API_BASE_URL = 'http://localhost:8001';
+const API_BASE_URL = '';
 
 // DOM元素
 const chatMessages = document.getElementById('chat-messages');
