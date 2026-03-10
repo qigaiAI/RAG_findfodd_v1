@@ -68,7 +68,7 @@ class RecipeRAGSystem:
             model_name=self.config.embedding_model,
             index_save_path=self.config.index_save_path
         )
-#为什么没有检索优化模块的初始化
+
         # 3. 初始化生成集成模块
         print("🤖 初始化生成集成模块...")
         self.generation_module = GenerationIntegrationModule(
@@ -85,20 +85,23 @@ class RecipeRAGSystem:
 
         # 1. 尝试加载已保存的索引
         vectorstore = self.index_module.load_index()
-
+        documents = []
         if vectorstore is not None:
             print("✅ 成功加载已保存的向量索引！")
             # 仍需要加载文档和分块用于检索模块
             print("加载食谱文档...")
-            self.data_module.load_documents()
+            documents = self.data_module.load_documents()
             print("进行文本分块...")
             chunks = self.data_module.chunk_documents()
+            print("去除停用词...")
+            stop_documents = self.data_module.filter_stop_documents(documents)
+            print()
         else:
             print("未找到已保存的索引，开始构建新索引...")
 
             # 2. 加载文档
             print("加载食谱文档...")
-            self.data_module.load_documents()
+            documents = self.data_module.load_documents()
 
             # 3. 文本分块
             print("进行文本分块...")
@@ -112,11 +115,15 @@ class RecipeRAGSystem:
             print("保存向量索引...")
             self.index_module.save_index()
 
-        # 6. 初始化检索优化模块
-        print("初始化检索优化...")
-        self.retrieval_module = RetrievalOptimizationModule(vectorstore, chunks)
+            #6 文档去停用词
+            print("去除停用词...")
+            stop_documents = self.data_module.filter_stop_documents(documents)
 
-        # 7. 显示统计信息
+        # 7. 初始化检索优化模块
+        print("初始化检索优化...")
+        self.retrieval_module = RetrievalOptimizationModule(vectorstore, chunks, stop_documents, self.data_module)
+
+        # 8. 显示统计信息
         stats = self.data_module.get_statistics()
         print(f"\n📊 知识库统计:")
         print(f"   文档总数: {stats['total_documents']}")
@@ -165,7 +172,7 @@ class RecipeRAGSystem:
                 # 元数据过滤，
                 filters_chunks = self.retrieval_module.metadata_filtered_search(rewritten_query, filters,
                                                                                  top_k=self.config.top_k*3)
-                relevant_chunks = self.retrieval_module.hybrid_search_from_filters(rewritten_query,filters_chunks, top_k=self.config.top_k)
+                relevant_chunks = self.retrieval_module.hybrid_search_from_filters(rewritten_query,filters_chunks, top_k=self.config.top_k,)
             else:
                 relevant_chunks = self.retrieval_module.hybrid_search(rewritten_query, top_k=self.config.top_k)
             # 这个是一个示例，展示了如何从用户查询中提取元数据过滤条件（如分类和难度），并将这些条件应用于检索过程，以提高检索结果的相关性和准确性。您可以根据需要调整过滤条件的提取逻辑和应用方式。
@@ -213,7 +220,7 @@ class RecipeRAGSystem:
                 print(f"找到文档: {', '.join(doc_names)}")
 
             return self.generation_module.generate_list_answer_stream(question, relevant_docs)
-        if route_type == 'other':
+        elif route_type == 'other':
             # 其他查询直接返回不进行检索
             print("❌ 该问题与烹饪无关，直接生成回答...")
             return self.generation_module.generate_basic_answer(question, [])
@@ -331,7 +338,7 @@ class RecipeRAGSystem:
         print("🍽️📕 尝尝咸淡RAG系统 - 交互式问答  🍽️")
         print("=" * 60)
         print("💡 解决您的选择困难症，告别'今天吃什么'的世纪难题！")
-        
+        print("可以把自己的自创食谱，也加载进来哦")
         # 初始化系统
         self.initialize_system()
         

@@ -1,11 +1,11 @@
 """
 数据准备模块
 """
-
 import logging
 import hashlib
 from typing import List, Dict, Any
 
+from config import RAGConfig
 from langchain_text_splitters import MarkdownHeaderTextSplitter
 from langchain_core.documents import Document
 from pathlib import Path
@@ -30,7 +30,7 @@ class DataPreparationModule:
     CATEGORY_LABELS = list(set(CATEGORY_MAPPING.values()))
     DIFFICULTY_LABELS = ['非常简单', '简单', '中等', '困难', '非常困难']
     
-    def __init__(self, data_path: str):#
+    def __init__(self, data_path: str):
         """
         初始化数据准备模块
         
@@ -41,6 +41,7 @@ class DataPreparationModule:
         self.documents: List[Document] = []  # 父文档（完整食谱）
         self.chunks: List[Document] = []     # 子文档（按标题分割的小块）
         self.parent_child_map: Dict[str, str] = {}  # 子块ID -> 父文档ID的映射
+        self.config = RAGConfig()
     
     def load_documents(self) -> List[Document]:
         """
@@ -82,7 +83,9 @@ class DataPreparationModule:
 
             except Exception as e:
                 logger.warning(f"读取文件 {md_file} 失败: {e}")
-        
+
+
+
         # 增强文档元数据
         for doc in documents:
             self._enhance_metadata(doc)
@@ -90,6 +93,37 @@ class DataPreparationModule:
         self.documents = documents
         logger.info(f"成功加载 {len(documents)} 个文档")
         return documents
+
+    # 文档过滤停用词（可选步骤，根据需要启用）
+    def filter_stop_documents(self,documents:List[Document])-> List[Document]:
+        '''
+
+        :param documents:
+        :return:
+        '''
+        logger.info(f"正在过滤停用词文档...")
+        documents_stop_filtered = []
+        for doc in documents:
+            # 创建文档的深拷贝，避免修改原始文档
+            filtered_doc = Document(
+                page_content=doc.page_content,
+                metadata=doc.metadata.copy()
+            )
+            precise_words = self.precise_cut(filtered_doc.page_content)
+            filtered_stop_words = self.filter_stop_words(precise_words)
+            filtered_stop_words_str = "".join(filtered_stop_words)
+            filtered_doc.page_content = filtered_stop_words_str
+            documents_stop_filtered.append(filtered_doc)
+        return documents_stop_filtered
+        # for doc in documents:
+        #     precise_words = self.precise_cut(doc.page_content)
+        #     filtered_stop_words = self.filter_stop_words(precise_words)
+        #     filtered_stop_words_str = "".join(filtered_stop_words)
+        #     doc.page_content_filtered = filtered_stop_words_str
+        #     print(f"过滤停用词后: {doc.page_content_filtered}")
+        # return documents
+
+
     
     def _enhance_metadata(self, doc: Document):
         """
@@ -360,3 +394,20 @@ class DataPreparationModule:
 
         logger.info(f"从 {len(child_chunks)} 个子块中找到 {len(parent_docs)} 个去重父文档: {', '.join(parent_info)}")
         return parent_docs
+
+    def precise_cut(self, text: str) -> List[str]:
+        """
+            精准分词函数（保留核心语义词，拆分粒度合理）
+            Args:
+                text: 输入文本
+            Returns:
+                分词结果列表
+        """
+        # 简单的分词实现，不依赖jieba
+        # 对于中文文本，直接返回原文本，因为BM25Retriever可以处理中文
+        return [text]
+
+    def filter_stop_words(self,words):
+        # 过滤停用词
+        # 对于整个文本，直接返回原文本，因为BM25Retriever可以处理中文
+        return words

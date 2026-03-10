@@ -20,10 +20,18 @@ class IndexConstructionModule:
         初始化索引构建模块
 
         Args:
-            model_name: 嵌入模型名称
+            model_name: 嵌入模型名称或本地路径
             index_save_path: 索引保存路径
         """
-        self.model_name = model_name
+        # 检查本地模型路径是否存在
+        local_model_path = Path("./models") / model_name
+        if local_model_path.exists():
+            self.model_name = str(local_model_path)
+            logger.info(f"使用本地模型路径: {self.model_name}")
+        else:
+            self.model_name = model_name
+            logger.info(f"使用模型标识符: {self.model_name}")
+        
         self.index_save_path = index_save_path
         self.embeddings = None
         self.vectorstore = None
@@ -33,7 +41,7 @@ class IndexConstructionModule:
         """初始化嵌入模型"""
         logger.info(f"正在初始化嵌入模型: {self.model_name}")
         self.embeddings = HuggingFaceEmbeddings(
-            model_name=f"./models/{self.model_name}",
+            model_name=self.model_name,
             model_kwargs={'device': 'cpu'},
             encode_kwargs={'normalize_embeddings': True}
         )
@@ -98,6 +106,7 @@ class IndexConstructionModule:
         Returns:
             加载的向量存储对象，如果加载失败返回None
         """
+
         if not self.embeddings:
             self.setup_embeddings()
 

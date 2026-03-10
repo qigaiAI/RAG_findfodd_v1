@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>尝尝咸淡 - 智能食谱助手</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🍽️ 尝尝咸淡 - 智能食谱助手</h1>
+            <p>解决您的选择困难症，告别'今天吃什么'的世纪难题！</p>
+        </header>
+        
+        <main>
+            <!-- 对话区域 -->
+            <div class="chat-container">
+                <div id="chat-messages" class="chat-messages">
+                    <div class="message bot-message">
+                        <div class="message-content">
+                            <p>你好！我是尝尝咸淡智能食谱助手。请问有什么可以帮助你的？</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="chat-input-area">
+                    <input type="text" id="user-input" placeholder="输入你的问题，例如：今天吃什么？" class="chat-input">
+                    <button id="send-button" class="send-button">发送</button>
+                </div>
+            </div>
+            
+            <!-- 提交菜品区域 -->
+            <div class="submit-container">
+                <h2>📝 提交你的菜品</h2>
+                <form id="submit-form">
+                    <div class="form-group">
+                        <label for="dish-name">菜品名称</label>
+                        <input type="text" id="dish-name" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="dish-category">分类</label>
+                        <select id="dish-category" required>
+                            <option value="荤菜">荤菜</option>
+                            <option value="素菜">素菜</option>
+                            <option value="汤品">汤品</option>
+                            <option value="甜品">甜品</option>
+                            <option value="早餐">早餐</option>
+                            <option value="主食">主食</option>
+                            <option value="水产">水产</option>
+                            <option value="调料">调料</option>
+                            <option value="饮品">饮品</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="dish-difficulty">难度</label>
+                        <select id="dish-difficulty" required>
+                            <option value="非常简单">非常简单</option>
+                            <option value="简单">简单</option>
+                            <option value="中等">中等</option>
+                            <option value="困难">困难</option>
+                            <option value="非常困难">非常困难</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="dish-ingredients">食材</label>
+                        <textarea id="dish-ingredients" rows="3" required></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="dish-steps">步骤</label>
+                        <textarea id="dish-steps" rows="5" required></textarea>
+                    </div>
+                    <button type="submit" class="submit-button">提交菜品</button>
+                </form>
+            </div>
+            
+            <!-- 删除菜品区域 -->
+            <div class="submit-container">
+                <h2>🗑️ 删除菜品</h2>
+                <form id="delete-form">
+                    <div class="form-group">
+                        <label for="delete-dish-name">菜品名称</label>
+                        <input type="text" id="delete-dish-name" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="delete-dish-category">分类</label>
+                        <select id="delete-dish-category" required>
+                            <option value="荤菜">荤菜</option>
+                            <option value="素菜">素菜</option>
+                            <option value="汤品">汤品</option>
+                            <option value="甜品">甜品</option>
+                            <option value="早餐">早餐</option>
+                            <option value="主食">主食</option>
+                            <option value="水产">水产</option>
+                            <option value="调料">调料</option>
+                            <option value="饮品">饮品</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="submit-button delete-button">删除菜品</button>
+                </form>
+            </div>
+        </main>
+        
+        <footer>
+            <p>&copy; 2026 尝尝咸淡 - 智能食谱助手</p>
+        </footer>
+    </div>
+    
+    <script src="script.js"></script>
+</body>
+</html>
